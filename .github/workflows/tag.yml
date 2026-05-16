@@ -1,3 +1,5 @@
+name: Create a tag
+
 on:
   push:
     branches:
@@ -5,7 +7,7 @@ on:
       - develop
 jobs:
   tag:
-    name: Create and tag new release
+    name: Create new tag
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
