@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.1.1 (2026-05-16)
+
+### Bug Fixes
+
+- Added dollar sign for ref name, didnt wear glasses...
+  ([`561dbfe`](https://github.com/joelbitar/django_tasks_pubsub/commit/561dbfe2ffd80a625019c95b3e157303d5cc498b))
+
+
 ## v1.1.0 (2026-05-16)
 
 ### Chores
