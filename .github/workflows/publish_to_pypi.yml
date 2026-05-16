@@ -1,0 +1,16 @@
+name: publish_to_pypi.yml
+on:
+  push:
+    tags:
+      - v*
+
+
+jobs:
+  pubilsh:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Setup | Checkout Repository on Release Branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
