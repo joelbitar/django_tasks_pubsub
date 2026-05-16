@@ -3,7 +3,7 @@ name: Tag and release new version
 on:
   push:
     tags:
-      - 'v*'
+      - 'v.*'
 
 # default: least privileged permissions across all jobs
 permissions:
