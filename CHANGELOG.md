@@ -2,6 +2,19 @@
 
 <!-- version list -->
 
+## v1.1.0 (2026-05-16)
+
+### Chores
+
+- Try to update toml version
+  ([`3f30b68`](https://github.com/joelbitar/django_tasks_pubsub/commit/3f30b68d33e5a3dab5a3f62a585b8975dd96ddc0))
+
+### Features
+
+- Consolidate workflows
+  ([`f19eaf8`](https://github.com/joelbitar/django_tasks_pubsub/commit/f19eaf8aede953515fd13173ec5f51a0e525a817))
+
+
 ## v1.0.0 (2026-05-16)
 
 ### Chores
