@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.2.0 (2026-05-16)
+
+### Features
+
+- New tag workflows
+  ([`798ce50`](https://github.com/joelbitar/django_tasks_pubsub/commit/798ce50dfbc59d35409c886224133768d26d4754))
+
+
 ## v1.1.1 (2026-05-16)
 
 ### Bug Fixes
