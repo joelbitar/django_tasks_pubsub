@@ -58,7 +58,7 @@ jobs:
           git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
           git commit -a -m "Update version number to new_version"
           git push origin tag ${{ steps.release.outputs.tag }}
-          git push origin {{ github.ref_name }}
+          git push origin ${{ github.ref_name }}
 
       - name: Publish | Upload to GitHub Release Assets
         uses: python-semantic-release/publish-action@v10.5.3
