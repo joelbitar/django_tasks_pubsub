@@ -13,17 +13,38 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
-    concurrency:
-      group: ${{ github.workflow }}-release-${{ github.ref_name }}
-      cancel-in-progress: false
-
-    permissions:
-      contents: write
 
     steps:
-      - name: Tag
-        uses: K-Phoen/semver-release-action@master
+      - name: Checkout Code
+        uses: actions/checkout@v5
+
+      - name: Get Next Version
+        id: semver
+        uses: ietf-tools/semver-action@v1
         with:
-          release_branch: main
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ github.token }}
+          branch: main
+
+      - name: 'Update TOML file'
+        run: |
+          OLD_VERSION=$(grep ^version pyproject.toml | cut -d '"' -f 2)
+          OLD_VERSION="\"$OLD_VERSION\""
+          NEW_VERSION="\"$GITHUB_REF_NAME\""
+          sed -i "s+version = $OLD_VERSION+version = $NEW_VERSION+g" pyproject.toml
+
+      - name: 'Commit and push new version file'
+        run: |
+          git config user.name "$GITHUB_ACTOR"
+          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+          git commit -a -m "Update version number to ${{ steps.semver.outputs.next }}"
+          git push origin tag ${{ steps.semver.outputs.next }}
+
+      - name: 'Release | Create'
+        uses: ncipollo/release-action@v1.20.0
+        with:
+          allowUpdates: true
+          draft: false
+          makeLatest: true
+          name: ${{ steps.semver.outputs.next }}
+          body: Changelog Contents
+          token: ${{ github.token }}
