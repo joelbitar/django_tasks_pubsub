@@ -32,7 +32,7 @@ jobs:
         run: |
           OLD_VERSION=$(grep ^version pyproject.toml | cut -d '"' -f 2)
           OLD_VERSION="\"$OLD_VERSION\""
-          NEW_VERSION="\"$GITHUB_REF_NAME\""
+          NEW_VERSION="${{ steps.semver.outputs.next }}"
           sed -i "s+version = $OLD_VERSION+version = $NEW_VERSION+g" pyproject.toml
 
       - name: 'Commit and push new version file'
@@ -40,5 +40,16 @@ jobs:
           git config user.name "$GITHUB_ACTOR"
           git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
           git commit -a -m "Update version number to ${{ steps.semver.outputs.next }}"
-          git tag ${{ steps.semver.outputs.next }}
-          git push origin tag ${{ steps.semver.outputs.next }}
+        #git tag ${{ steps.semver.outputs.next }}
+        #git push origin tag ${{ steps.semver.outputs.next }}
+        
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
+        with:
+          tag_name: ${{ steps.semver.outputs.next }}
+          release_name: Release ${{ steps.semver.outputs.next }}
+          draft: false
+          prerelease: false
