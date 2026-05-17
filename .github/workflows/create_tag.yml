@@ -37,6 +37,7 @@ jobs:
           git config user.name "$GITHUB_ACTOR"
           git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
           git commit -a -m "Update version number to ${{ steps.semver.outputs.next }}"
+          git tag ${{ steps.semver.outputs.next }}
           git push origin tag ${{ steps.semver.outputs.next }}
 
       - name: 'Release | Create'
