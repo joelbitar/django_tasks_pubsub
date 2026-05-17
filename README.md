@@ -44,8 +44,14 @@ def send_email(user_id):
 
 #### Specify a topic
 
+Here we configure a task that publishes to the topic "resize_images"
+
 ```python
-@pubsub_task(topic="images")
+from django.tasks import task
+from django_tasks_pubsub import pubsub_task
+
+@task
+@pubsub_task(topic="resize_images")
 def function(image_id):
     ...
 ```
