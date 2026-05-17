@@ -17,12 +17,6 @@ jobs:
       contents: write
 
     steps:
-      # Note: We checkout the repository at the branch that triggered the workflow.
-      # Python Semantic Release will automatically convert shallow clones to full clones
-      # if needed to ensure proper history evaluation. However, we forcefully reset the
-      # branch to the workflow sha because it is possible that the branch was updated
-      # while the workflow was running, which prevents accidentally releasing un-evaluated
-      # changes.
       - name: Setup | Checkout Repository on Release Branch
         uses: actions/checkout@v4
         with:
