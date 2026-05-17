@@ -32,6 +32,7 @@ jobs:
         with:
           token: ${{ github.token }}
           branch: main
+          patchList: 'fix, bugfix, perf, refactor, test, tests, chore, docs'
 
       - name: 'Update TOML file'
         run: |
