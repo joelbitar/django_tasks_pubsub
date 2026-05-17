@@ -42,13 +42,3 @@ jobs:
           git commit -a -m "Update version number to ${{ steps.semver.outputs.next }}"
           git tag ${{ steps.semver.outputs.next }}
           git push origin tag ${{ steps.semver.outputs.next }}
-
-      - name: 'Release | Create'
-        uses: ncipollo/release-action@v1.20.0
-        with:
-          allowUpdates: true
-          draft: false
-          makeLatest: true
-          name: ${{ steps.semver.outputs.next }}
-          body: Changelog Contents
-          token: ${{ github.token }}
