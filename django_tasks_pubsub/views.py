@@ -2,6 +2,8 @@ import base64
 import json
 import logging
 
+logger = logging.getLogger("django_tasks_pubsub.views")
+
 from django.http import HttpResponse
 from django.utils.decorators import method_decorator
 from django.views import View
@@ -27,26 +29,40 @@ class PubSubPushView(View):
     }
 
     Returns 204 on success (Pub/Sub ACKs on any 2xx).
-    Returns 500 on task failure (Pub/Sub will retry).
     Returns 400 on malformed message (no retry).
+    Returns 500 on task failure (Pub/Sub will retry).
     """
 
     def post(self, request):
         try:
             envelope = json.loads(request.body)
         except (json.JSONDecodeError, ValueError):
-            logging.error("PubSubPushView: invalid JSON body")
+            logger.error("PubSubPushView: invalid JSON body")
             return HttpResponse(status=400)
 
-        encoded_data = envelope.get("message", {}).get("data", "")
+        message_data = envelope.get("message", {})
+
+        encoded_data = message_data.get("data", None)
+
+        if encoded_data is None:
+            logger.error("PubSubPushView: missing message.data")
+            return HttpResponse(status=400)
+
         if not encoded_data:
-            logging.error("PubSubPushView: missing message.data")
+            logger.error("PubSubPushView: empty message.data")
             return HttpResponse(status=400)
 
         try:
-            payload_dict = json.loads(base64.b64decode(encoded_data))
+            decoded_data = base64.b64decode(encoded_data)
         except Exception as exc:
-            logging.error(f"PubSubPushView: failed to decode message: {exc}")
+            logger.error(f"PubSubPushView: failed to decode base64 data: {encoded_data!r} error={exc!r}")
+            return HttpResponse(status=400)
+
+
+        try:
+            payload_dict = json.loads(decoded_data)
+        except Exception as exc:
+            logger.error(f"PubSubPushView: failed to parse json payload: {decoded_data!r} error={exc!r}")
             return HttpResponse(status=400)
 
         try:
@@ -57,15 +73,15 @@ class PubSubPushView(View):
                 **payload_dict,
             )
         except Exception as exc:
-            logging.exception(f"PubSubPushView: failed to create payload: {exc}")
+            logger.exception(f"PubSubPushView: failed to instantiate payload object from data: {payload_dict} error={exc!r}")
             return HttpResponse(status=400)
 
-        logging.info(f"PubSubPushView: dispatching task_type={payload.task.name!r}")
+        logger.info(f"PubSubPushView: dispatching task_type={payload.task.name!r}")
 
         try:
             dispatch(payload=payload)
         except BaseException as exc:
-            logging.exception(f"PubSubPushView: task failed: {payload!r} error={exc}")
+            logger.exception(f"PubSubPushView: task failed: {payload!r} error={exc}")
             return HttpResponse(status=500)
 
         return HttpResponse(status=204)
