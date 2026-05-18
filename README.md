@@ -73,8 +73,8 @@ def send_email(user_id):
 
 #### Specify a topic
 
-You need to decorate the task with @task and @pubsub_task(topic="topic-name")
-in this order.
+To specify a topic, you need to decorate the task with @task and @pubsub_task(topic="topic-name")
+in this order:
 
 ```python
 from django.tasks import task
