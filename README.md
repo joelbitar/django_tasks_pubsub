@@ -90,5 +90,11 @@ def function(image_id):
 
 ## Development
 
+### Commit Messages
+
+All commits to this repository must follow the [Conventional Commits](https://www.conventionalcommits.org/) specification. 
+
+This is required because the automated release and tagging workflow relies on conventional commit prefixes (such as `feat:`, `fix:`, `chore:`, `docs:`, etc.) to automatically calculate the next semantic version.
+
 ## License
 MIT
