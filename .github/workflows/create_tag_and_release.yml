@@ -1,4 +1,4 @@
-name: Create tag
+name: Create tag, build and release package.
 
 on:
   push:
@@ -24,6 +24,8 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
 
       - name: Get Next Version
         id: semver
@@ -39,6 +41,13 @@ jobs:
           OLD_VERSION="\"$OLD_VERSION\""
           NEW_VERSION="\"${{ steps.semver.outputs.next }}\""
           sed -i "s+version = $OLD_VERSION+version = $NEW_VERSION+g" pyproject.toml
+
+      - name: 'Update CHANGELOG.md'
+        uses: orhun/git-cliff-action@v4
+        with:
+          args: --unreleased --tag ${{ steps.semver.outputs.next }} --prepend CHANGELOG.md
+        env:
+          GITHUB_REPO: ${{ github.repository }}
 
       - name: 'Commit and push new version file'
         run: |
