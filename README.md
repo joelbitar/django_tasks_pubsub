@@ -1,13 +1,22 @@
 # django_tasks_pubsub
 
-PostgreSQL-backed task pub/sub for Django.
+Google Cloud Pub/Sub backend for Django tasks
 
 ## Installation
 
+### Package manager
+
+#### pip
 ```bash
 pip install django_tasks_pubsub
 ```
 
+#### uv
+```bash
+uv add django_tasks_pubsub
+```
+
+### Add to INSTALLED_APPS
 ```python
 INSTALLED_APPS = [
     ...

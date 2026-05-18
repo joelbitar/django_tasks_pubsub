@@ -5,3 +5,4 @@ __pycache__
 .idea
 dist
 django_tasks_pubsub.egg-info
+htmlcov
