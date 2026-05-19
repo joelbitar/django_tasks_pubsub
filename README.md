@@ -42,6 +42,12 @@ TASKS = {
 }
 ```
 
+### Authentication
+
+Check out the Google Cloud Pub/Sub documentation for [more information](https://docs.cloud.google.com/python/docs/reference/pubsub/latest).
+
+In short the the client works well within a Google Cloud environment.
+
 ## URLs
 
 In order to receive push messages from Google Cloud Pub/Sub, you need to register the endpoint in your project's `urls.py`:
