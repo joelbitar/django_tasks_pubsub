@@ -88,8 +88,8 @@ from django_tasks_pubsub import pubsub_task
 
 
 @task
-@pubsub_task(topic="images")
-def function(image_id):
+@pubsub_task(topic_id="images")
+def function(image_id: int):
     ...
 ```
 
