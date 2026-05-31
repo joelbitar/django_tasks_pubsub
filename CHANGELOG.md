@@ -1,3 +1,8 @@
+## [0.1.9] - 2026-05-31
+
+### ⚙️ Miscellaneous Tasks
+
+- Corrected documentation
 ## [0.1.8] - 2026-05-19
 
 ### 📚 Documentation

@@ -1,6 +1,6 @@
 [project]
 name = "django-tasks-pubsub"
-version = "v0.1.8"
+version = "v0.1.9"
 description = "Django tasks backend for Google Cloud Pub/Sub"
 readme = "README.md"
 requires-python = ">=3.13"
