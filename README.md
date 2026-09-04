@@ -35,7 +35,7 @@ this will ensure that the task is not executed multiple times for the same messa
 uses django cache framework to check status of ongoing tasks
 
 ```python
-DJANGO_TASKS_PUBSUB_CACHE_PREFIX = 'some_prefix'
+PUBSUB_CACHE_PREFIX = 'some_prefix'
 ```
 
 ### Add required Google Cloud Pub/Sub settings

@@ -110,7 +110,7 @@ class PubSubPushView(View):
             True if we should process the task
         """
 
-        if not (cache_key_prefix := getattr(settings, 'DJANGO_TASKS_PUBSUB_CACHE_PREFIX', None)):
+        if not (cache_key_prefix := getattr(settings, 'PUBSUB_CACHE_PREFIX', None)):
             return '', None
 
         cache_key = f"{cache_key_prefix}:{payload.task.name}:{payload.task_id}"
