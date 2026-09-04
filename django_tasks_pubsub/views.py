@@ -80,7 +80,7 @@ class PubSubPushView(View):
             return HttpResponse(status=400)
 
         cache_key, forced_response = self.idempotency_check(payload=payload)
-        if forced_response is not None:
+        if forced_response is not None and isinstance(forced_response, HttpResponse):
             return forced_response
 
         logger.info(f"PubSubPushView: dispatching task {cache_key or '___'} task_type={payload.task.name!r}")
