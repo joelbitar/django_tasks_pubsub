@@ -26,6 +26,18 @@ INSTALLED_APPS = [
 
 ## Settings
 
+### Idempotency check
+
+add to settings what prefix you want for me to check idempotency
+
+this will ensure that the task is not executed multiple times for the same message
+
+uses django cache framework to check status of ongoing tasks
+
+```python
+DJANGO_TASKS_PUBSUB_CACHE_PREFIX = 'some_prefix'
+```
+
 ### Add required Google Cloud Pub/Sub settings
 ```python
 PUBSUB_PROJECT_ID = "your-google-cloud-project-id"

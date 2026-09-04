@@ -1,6 +1,9 @@
 import base64
 import json
 import logging
+from typing import Union
+
+from django.core.cache import cache
 
 logger = logging.getLogger("django_tasks_pubsub.views")
 
@@ -8,6 +11,7 @@ from django.http import HttpResponse
 from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
+from django.conf import settings
 
 from django_tasks_pubsub.dispatcher import dispatch
 from django_tasks_pubsub.backend import Payload, TaskPayload
@@ -58,7 +62,6 @@ class PubSubPushView(View):
             logger.error(f"PubSubPushView: failed to decode base64 data: {encoded_data!r} error={exc!r}")
             return HttpResponse(status=400)
 
-
         try:
             payload_dict = json.loads(decoded_data)
         except Exception as exc:
@@ -76,12 +79,63 @@ class PubSubPushView(View):
             logger.exception(f"PubSubPushView: failed to instantiate payload object from data: {payload_dict} error={exc!r}")
             return HttpResponse(status=400)
 
+        cache_key, forced_response = self.idempotency_check(payload=payload)
+        if forced_response is not None:
+            return forced_response
+
         logger.info(f"PubSubPushView: dispatching task_type={payload.task.name!r}")
 
         try:
             dispatch(payload=payload)
         except BaseException as exc:
             logger.exception(f"PubSubPushView: task failed: {payload!r} error={exc}")
+
+            if cache_key:
+                cache.delete(cache_key)
+
             return HttpResponse(status=500)
 
+        # Mark as Done for 7 days
+        if cache_key:
+            cache.set(cache_key, "DONE", timeout=604800)
+
         return HttpResponse(status=204)
+
+    def idempotency_check(self, payload: Payload) -> tuple[
+        str, Union[bool, None, HttpResponse]
+    ]:
+        """
+        return
+            cache key
+            True if we should process the task
+        """
+
+        if not (cache_key_prefix := getattr(settings, 'DJANGO_TASKS_PUBSUB_CACHE_PREFIX', None)):
+            return '', None
+
+        cache_key = f"{cache_key_prefix}:{payload.task.name}:{payload.task_id}"
+
+        acquired = cache.add(
+            cache_key,
+            "PROCESSING",
+            timeout=600
+        )
+
+        if not acquired:
+            current_state = cache.get(cache_key)
+
+            if current_state == "DONE":
+                logger.info(f"Task {payload.task_id} already processed. ACKing.")
+                # 200 OK tells Pub/Sub: "We got it, don't send it again."
+                return cache_key, HttpResponse(status=200)
+
+            elif current_state == "PROCESSING":
+                logger.info(f"Task {payload.task_id} currently processing elsewhere. NACKing.")
+                # 409 Conflict tells Pub/Sub: "Try again later."
+                return cache_key, HttpResponse(status=409)
+
+            else:
+                # The key expired between cache.add() and cache.get(). Retry later.
+                return cache_key, HttpResponse(status=409)
+
+        return cache_key, True
