@@ -1,3 +1,8 @@
+## [0.3.0] - 2026-09-04
+
+### 🚀 Features
+
+- Check is httpresponse
 ## [0.2.2] - 2026-09-04
 
 ### ⚙️ Miscellaneous Tasks
