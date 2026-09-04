@@ -1,3 +1,8 @@
+## [0.2.0] - 2026-09-04
+
+### 🚀 Features
+
+- Only execute once for each task_id
 ## [0.1.9] - 2026-05-31
 
 ### ⚙️ Miscellaneous Tasks
