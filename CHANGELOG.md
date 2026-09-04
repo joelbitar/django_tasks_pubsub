@@ -1,3 +1,8 @@
+## [0.2.1] - 2026-09-04
+
+### ⚙️ Miscellaneous Tasks
+
+- Rename to fit other settings
 ## [0.2.0] - 2026-09-04
 
 ### 🚀 Features
