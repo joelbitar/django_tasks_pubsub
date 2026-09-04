@@ -83,12 +83,12 @@ class PubSubPushView(View):
         if forced_response is not None:
             return forced_response
 
-        logger.info(f"PubSubPushView: dispatching task_type={payload.task.name!r}")
+        logger.info(f"PubSubPushView: dispatching task {cache_key or '___'} task_type={payload.task.name!r}")
 
         try:
             dispatch(payload=payload)
         except BaseException as exc:
-            logger.exception(f"PubSubPushView: task failed: {payload!r} error={exc}")
+            logger.exception(f"PubSubPushView: task {cache_key or '___'} failed: {payload!r} error={exc}")
 
             if cache_key:
                 cache.delete(cache_key)
@@ -97,6 +97,7 @@ class PubSubPushView(View):
 
         # Mark as Done for 7 days
         if cache_key:
+            logger.info(f"PubSubPushView: marking as done task {cache_key or '___'} task_type={payload.task.name!r}")
             cache.set(cache_key, "DONE", timeout=604800)
 
         return HttpResponse(status=204)
@@ -115,6 +116,8 @@ class PubSubPushView(View):
 
         cache_key = f"{cache_key_prefix}:{payload.task.name}:{payload.task_id}"
 
+        logger.info(f"Task {payload.task_id}, adding to cache.")
+        
         acquired = cache.add(
             cache_key,
             "PROCESSING",
@@ -137,5 +140,7 @@ class PubSubPushView(View):
             else:
                 # The key expired between cache.add() and cache.get(). Retry later.
                 return cache_key, HttpResponse(status=409)
-
+        
+        logger.info(f"Task {payload.task_id} ready for processing")
+        
         return cache_key, True
