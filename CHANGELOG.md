@@ -1,3 +1,8 @@
+## [0.3.1] - 2026-09-07
+
+### ⚙️ Miscellaneous Tasks
+
+- Change task timeouts in cache
 ## [0.3.0] - 2026-09-04
 
 ### 🚀 Features
