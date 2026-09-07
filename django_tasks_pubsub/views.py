@@ -95,10 +95,12 @@ class PubSubPushView(View):
 
             return HttpResponse(status=500)
 
-        # Mark as Done for 7 days
+        logger.info(f"PubSubPushView: task {cache_key or '___'} processed: {payload!r}")
+
+        # Mark as Done to prevent re-processing of the same task
         if cache_key:
             logger.info(f"PubSubPushView: marking as done task {cache_key or '___'} task_type={payload.task.name!r}")
-            cache.set(cache_key, "DONE", timeout=604800)
+            cache.set(cache_key, "DONE", timeout=60 * 50)
 
         return HttpResponse(status=204)
 
@@ -121,7 +123,7 @@ class PubSubPushView(View):
         acquired = cache.add(
             cache_key,
             "PROCESSING",
-            timeout=600
+            timeout=60 * 10
         )
 
         if not acquired:
