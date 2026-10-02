@@ -1,8 +1,6 @@
 import base64
 import json
-import sys
-from types import SimpleNamespace
-from unittest.mock import patch, Mock
+from unittest.mock import patch, Mock, MagicMock
 
 from django.tasks import task
 from django.test import RequestFactory, SimpleTestCase
@@ -88,7 +86,7 @@ class DjangoTasksPubSubPushViewTests(SimpleTestCase):
             )
 
     @patch("django_tasks_pubsub.views.dispatch")
-    def test_pubsub_view_continues_sentry_trace_from_message_attributes(self, mocked_dispatch):
+    def test_pubsub_view_restores_trace_context_from_message_attributes(self, mocked_dispatch):
         payload = {
             "task": {
                 "backend": "default",
@@ -109,19 +107,20 @@ class DjangoTasksPubSubPushViewTests(SimpleTestCase):
         }
         request = self.build_pubsub_push_request(payload, attributes=attributes)
 
-        trace_context = SimpleNamespace()
-        trace_context.__enter__ = Mock()
-        trace_context.__exit__ = Mock(return_value=False)
-        sentry_sdk = SimpleNamespace(continue_trace=Mock(return_value=trace_context))
+        trace_context = MagicMock()
+        trace_context.__enter__.return_value = None
+        trace_context.__exit__.return_value = False
+        restorer = Mock(return_value=trace_context)
 
-        with patch.dict(sys.modules, {"sentry_sdk": sentry_sdk}):
+        with self.settings(DJANGO_TASKS_PUBSUB_TRACE_PROPAGATION_RESTORER=restorer):
             response = PubSubPushView.as_view()(request)
 
         self.assertEqual(response.status_code, 204)
-        sentry_sdk.continue_trace.assert_called_once_with({
+        restorer.assert_called_once_with({
             "sentry-trace": "trace-id-span-id-1",
             "baggage": "sentry-environment=prod",
         })
+        trace_context.__enter__.assert_called_once_with()
         mocked_dispatch.assert_called_once()
 
     def test_pubsub_view_calls_actual_task_function_with_expected_arguments(self):

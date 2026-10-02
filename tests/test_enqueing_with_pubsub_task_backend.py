@@ -188,6 +188,23 @@ class TestPubSubBackendEnqueuing(SimpleTestCase):
 
         self.assertEqual(mocked_publish_method.call_count, 1)
 
+    @patch("django_tasks_pubsub.backend.publish", return_value="")
+    def test_enqueuing_a_task_uses_trace_propagation_metadata_hook(self, mocked_publish_method):
+        def trace_propagation_getter():
+            return {"sentry-trace": "trace-id span-id", "baggage": "env=prod"}
+
+        with self.settings(DJANGO_TASKS_PUBSUB_TRACE_PROPAGATION_GETTER=trace_propagation_getter):
+            sample_task.enqueue(
+                "spec_arg",
+                "arg1",
+            )
+
+        self.assertEqual(mocked_publish_method.call_count, 1)
+        self.assertEqual(
+            mocked_publish_method.call_args.kwargs["attributes"],
+            {"sentry-trace": "trace-id span-id", "baggage": "env=prod"},
+        )
+
 
 class TestPubSubTopicEnqueuingWithImmediateBackend(SimpleTestCase):
     @override_settings(

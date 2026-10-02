@@ -44,6 +44,33 @@ PUBSUB_PROJECT_ID = "your-google-cloud-project-id"
 PUBSUB_DEFAULT_TOPIC_ID = "your-default-topic-id"
 ```
 
+### Optional telemetry propagation hooks
+
+The queue layer stays telemetry-agnostic. If your app wants to propagate tracing
+information via message attributes, configure a getter and a restorer hook.
+
+```python
+# settings.py
+DJANGO_TASKS_PUBSUB_TRACE_PROPAGATION_GETTER = "myapp.telemetry.get_message_trace_metadata"
+DJANGO_TASKS_PUBSUB_TRACE_PROPAGATION_RESTORER = "myapp.telemetry.restore_trace_context"
+```
+
+```python
+# myapp/telemetry.py
+def get_message_trace_metadata() -> dict[str, str]:
+    return {
+        "sentry-trace": sentry_sdk.get_traceparent(),
+        "baggage": sentry_sdk.get_baggage() or "",
+    }
+
+
+def restore_trace_context(metadata: dict[str, str]) -> object:
+    return sentry_sdk.continue_trace(metadata)
+```
+
+If no hook is configured, the library behaves as a no-op and sends no tracing
+attributes or context restoration.
+
 ### Add the backend to the TASKS setting
 
 ```python

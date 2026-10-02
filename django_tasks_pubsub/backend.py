@@ -14,6 +14,7 @@ from django.utils.crypto import get_random_string
 from django_tasks_pubsub.publisher import get_publisher
 from django_tasks_pubsub.publisher import publish
 from django_tasks_pubsub.pubsub_task_decorator import PubSubMetaData
+from django_tasks_pubsub.telemetry import get_message_trace_metadata
 
 
 @dataclass(frozen=True)
@@ -92,7 +93,12 @@ class PubSubBackend(BaseTaskBackend):
             task,
         )
 
-        publish(topic=topic_path, data=data)
+        trace_metadata = get_message_trace_metadata()
+        publish(
+            topic=topic_path,
+            data=data,
+            attributes=trace_metadata or None,
+        )
 
         return TaskResult(
             id=task_id,

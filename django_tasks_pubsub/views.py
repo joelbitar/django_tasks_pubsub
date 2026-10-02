@@ -3,18 +3,18 @@ import json
 import logging
 from typing import Union
 
+from django.conf import settings
 from django.core.cache import cache
-
-logger = logging.getLogger("django_tasks_pubsub.views")
-
 from django.http import HttpResponse
 from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
-from django.conf import settings
 
-from django_tasks_pubsub.dispatcher import dispatch
 from django_tasks_pubsub.backend import Payload, TaskPayload
+from django_tasks_pubsub.dispatcher import dispatch
+from django_tasks_pubsub.telemetry import restore_trace_context
+
+logger = logging.getLogger("django_tasks_pubsub.views")
 
 
 @method_decorator(csrf_exempt, name="dispatch")
@@ -38,7 +38,7 @@ class PubSubPushView(View):
     """
 
     @staticmethod
-    def get_sentry_trace_headers(message_data: dict) -> dict[str, str]:
+    def get_trace_propagation_data(message_data: dict) -> dict[str, str]:
         attributes = message_data.get("attributes", {}) or {}
 
         if not isinstance(attributes, dict):
@@ -46,13 +46,14 @@ class PubSubPushView(View):
 
         trace_headers = {}
         for key, value in attributes.items():
-            if not isinstance(key, str) or not isinstance(value, str):
-                continue
-
-            if key.lower() in {"sentry-trace", "baggage"}:
-                trace_headers[key.lower()] = value
+            if isinstance(key, str) and isinstance(value, str):
+                trace_headers[key] = value
 
         return trace_headers
+
+    @staticmethod
+    def get_sentry_trace_headers(message_data: dict) -> dict[str, str]:
+        return PubSubPushView.get_trace_propagation_data(message_data)
 
     def post(self, request):
         try:
@@ -62,7 +63,7 @@ class PubSubPushView(View):
             return HttpResponse(status=400)
 
         message_data = envelope.get("message", {})
-        sentry_trace_headers = self.get_sentry_trace_headers(message_data)
+        trace_metadata = self.get_trace_propagation_data(message_data)
 
         encoded_data = message_data.get("data", None)
 
@@ -101,36 +102,31 @@ class PubSubPushView(View):
         if forced_response is not None and isinstance(forced_response, HttpResponse):
             return forced_response
 
-        logger.info(f"PubSubPushView: dispatching task {cache_key or '___'} task_type={payload.task.name!r}")
+        task_label = cache_key or "task"
+        logger.info(f"PubSubPushView: dispatching {task_label} task_type={payload.task.name!r}")
 
         try:
-            if sentry_trace_headers:
-                try:
-                    import sentry_sdk
-                except ImportError:
+            trace_context = restore_trace_context(trace_metadata)
+            if trace_context is not None and hasattr(trace_context, "__enter__") and hasattr(trace_context, "__exit__"):
+                with trace_context:
                     dispatch(payload=payload)
-                else:
-                    continue_trace = getattr(sentry_sdk, "continue_trace", None)
-                    if continue_trace is None:
-                        dispatch(payload=payload)
-                    else:
-                        with continue_trace(sentry_trace_headers):
-                            dispatch(payload=payload)
             else:
                 dispatch(payload=payload)
         except BaseException as exc:
-            logger.exception(f"PubSubPushView: task {cache_key or '___'} failed: {payload!r} error={exc}")
+            task_label = cache_key or "task"
+            logger.exception(f"PubSubPushView: {task_label} failed: {payload!r} error={exc}")
 
             if cache_key:
                 cache.delete(cache_key)
 
             return HttpResponse(status=500)
 
-        logger.info(f"PubSubPushView: task {cache_key or '___'} processed: {payload!r}")
+        task_label = cache_key or "task"
+        logger.info(f"PubSubPushView: {task_label} processed: {payload!r}")
 
         # Mark as Done to prevent re-processing of the same task
         if cache_key:
-            logger.info(f"PubSubPushView: marking as done task {cache_key or '___'} task_type={payload.task.name!r}")
+            logger.info(f"PubSubPushView: marking as done task {cache_key} task_type={payload.task.name!r}")
             cache.set(cache_key, "DONE", timeout=60 * 50)
 
         return HttpResponse(status=204)
