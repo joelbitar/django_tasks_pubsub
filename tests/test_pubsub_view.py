@@ -1,5 +1,7 @@
 import base64
 import json
+import sys
+from types import SimpleNamespace
 from unittest.mock import patch, Mock
 
 from django.tasks import task
@@ -20,17 +22,21 @@ class DjangoTasksPubSubPushViewTests(SimpleTestCase):
     def setUp(self):
         self.request_factory = RequestFactory()
 
-    def build_pubsub_push_request(self, payload: dict):
+    def build_pubsub_push_request(self, payload: dict, attributes: dict | None = None):
         encoded_payload = base64.b64encode(
             json.dumps(payload).encode("utf-8"),
         ).decode("utf-8")
 
+        message = {
+            "data": encoded_payload,
+            "messageId": "test-message-id",
+            "publishTime": "2026-05-12T10:00:00Z",
+        }
+        if attributes is not None:
+            message["attributes"] = attributes
+
         envelope = {
-            "message": {
-                "data": encoded_payload,
-                "messageId": "test-message-id",
-                "publishTime": "2026-05-12T10:00:00Z",
-            },
+            "message": message,
             "subscription": "projects/test-project/subscriptions/test-subscription",
         }
 
@@ -80,6 +86,43 @@ class DjangoTasksPubSubPushViewTests(SimpleTestCase):
                     **payload,
                 )
             )
+
+    @patch("django_tasks_pubsub.views.dispatch")
+    def test_pubsub_view_continues_sentry_trace_from_message_attributes(self, mocked_dispatch):
+        payload = {
+            "task": {
+                "backend": "default",
+                "module_path": "django_tasks_pubsub.tests.test_pubsub_view",
+                "name": "sample_task",
+                "priority": 0,
+                "queue_name": "default",
+                "takes_context": False,
+            },
+            "task_id": "test-task-id",
+            "enqueued_at": "2026-05-12T10:00:00+00:00",
+            "args": [],
+            "kwargs": {},
+        }
+        attributes = {
+            "sentry-trace": "trace-id-span-id-1",
+            "baggage": "sentry-environment=prod",
+        }
+        request = self.build_pubsub_push_request(payload, attributes=attributes)
+
+        trace_context = SimpleNamespace()
+        trace_context.__enter__ = Mock()
+        trace_context.__exit__ = Mock(return_value=False)
+        sentry_sdk = SimpleNamespace(continue_trace=Mock(return_value=trace_context))
+
+        with patch.dict(sys.modules, {"sentry_sdk": sentry_sdk}):
+            response = PubSubPushView.as_view()(request)
+
+        self.assertEqual(response.status_code, 204)
+        sentry_sdk.continue_trace.assert_called_once_with({
+            "sentry-trace": "trace-id-span-id-1",
+            "baggage": "sentry-environment=prod",
+        })
+        mocked_dispatch.assert_called_once()
 
     def test_pubsub_view_calls_actual_task_function_with_expected_arguments(self):
         payload = {

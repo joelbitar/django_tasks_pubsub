@@ -37,6 +37,23 @@ class PubSubPushView(View):
     Returns 500 on task failure (Pub/Sub will retry).
     """
 
+    @staticmethod
+    def get_sentry_trace_headers(message_data: dict) -> dict[str, str]:
+        attributes = message_data.get("attributes", {}) or {}
+
+        if not isinstance(attributes, dict):
+            return {}
+
+        trace_headers = {}
+        for key, value in attributes.items():
+            if not isinstance(key, str) or not isinstance(value, str):
+                continue
+
+            if key.lower() in {"sentry-trace", "baggage"}:
+                trace_headers[key.lower()] = value
+
+        return trace_headers
+
     def post(self, request):
         try:
             envelope = json.loads(request.body)
@@ -45,6 +62,7 @@ class PubSubPushView(View):
             return HttpResponse(status=400)
 
         message_data = envelope.get("message", {})
+        sentry_trace_headers = self.get_sentry_trace_headers(message_data)
 
         encoded_data = message_data.get("data", None)
 
@@ -86,7 +104,20 @@ class PubSubPushView(View):
         logger.info(f"PubSubPushView: dispatching task {cache_key or '___'} task_type={payload.task.name!r}")
 
         try:
-            dispatch(payload=payload)
+            if sentry_trace_headers:
+                try:
+                    import sentry_sdk
+                except ImportError:
+                    dispatch(payload=payload)
+                else:
+                    continue_trace = getattr(sentry_sdk, "continue_trace", None)
+                    if continue_trace is None:
+                        dispatch(payload=payload)
+                    else:
+                        with continue_trace(sentry_trace_headers):
+                            dispatch(payload=payload)
+            else:
+                dispatch(payload=payload)
         except BaseException as exc:
             logger.exception(f"PubSubPushView: task {cache_key or '___'} failed: {payload!r} error={exc}")
 

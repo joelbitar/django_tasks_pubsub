@@ -43,3 +43,20 @@ class TestPublisher(SimpleTestCase):
 
         mock_get_publisher.assert_called_once()
         mock_client.publish.assert_called_once_with(topic=topic, data=data)
+
+    @patch("django_tasks_pubsub.publisher.get_publisher")
+    def test_publish_preserves_given_attributes(self, mock_get_publisher):
+        mock_client = Mock()
+        mock_get_publisher.return_value = mock_client
+
+        publisher.publish(
+            topic="test-topic",
+            data=b"test-data",
+            attributes={"sentry-trace": "trace-id", "baggage": "baggage-value"},
+        )
+
+        mock_client.publish.assert_called_once_with(
+            topic="test-topic",
+            data=b"test-data",
+            attributes={"sentry-trace": "trace-id", "baggage": "baggage-value"},
+        )
