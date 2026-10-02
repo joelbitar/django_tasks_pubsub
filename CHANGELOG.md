@@ -1,3 +1,8 @@
+## [0.5.0] - 2026-10-02
+
+### 🚀 Features
+
+- Telemetry support
 ## [0.4.0] - 2026-10-02
 
 ### 🚀 Features
