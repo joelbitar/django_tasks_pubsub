@@ -1,3 +1,8 @@
+## [0.4.0] - 2026-10-02
+
+### 🚀 Features
+
+- Supporting metadata for tracing and whatnto
 ## [0.3.1] - 2026-09-07
 
 ### ⚙️ Miscellaneous Tasks
