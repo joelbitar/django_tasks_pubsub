@@ -1,3 +1,8 @@
+## [0.5.1] - 2026-11-02
+
+### 🐛 Bug Fixes
+
+- Attributes their own kw attrs
 ## [0.5.0] - 2026-10-02
 
 ### 🚀 Features
