@@ -12,6 +12,7 @@ def get_publisher():
 
 def publish(topic: str, data: bytes, attributes: dict[str, str] | None = None):
     publish_kwargs = {"topic": topic, "data": data}
-    if attributes is not None:
-        publish_kwargs["attributes"] = attributes
-    get_publisher().publish(**publish_kwargs)
+    get_publisher().publish(
+        **publish_kwargs,
+        **(attributes or {})
+    )
